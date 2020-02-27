@@ -12,7 +12,7 @@ response = session.get(url_news_index, headers = headers)
 soup = BeautifulSoup(response.text, 'html.parser')
 path =r'./cnyesnewstoday/%s'
 for n in range(len(soup.select('a[class="_1Zdp"]'))):
-    title = soup.select('a[class="_1Zdp"]')[n]['title']
+    title = soup.select('a[class="_1Zdp"]')[n]['title'].replace('<',' ').replace('>',' ').replace('/','').replace('＃','').replace('?','').replace('*','_').replace('\"','_').replace(':','_').replace('\n','_')
     if os.path.exists(path %(title) + '.json'):
         break
     article_id = soup.select('a[class="_1Zdp"]')[n]['href']
