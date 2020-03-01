@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import os
 import json
 import time
+import re
 if not os.path.exists(r'./cnyesnewstoday'):
     os.mkdir(r'./cnyesnewstoday')
 headers={'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36'}
@@ -22,6 +23,15 @@ for n in range(len(soup.select('a[class="_1Zdp"]'))):
     content_response = session.get(content_url, headers = headers)
     content_json = content_response.json()
     content = content_json['items']['content']
+    if re.search(r'(<a.+?a>)', content) != None:
+        content = re.sub(r"(\(<a.+?a>\))", '', content, count=0, flags=re.IGNORECASE)
+    if re.search(r'(&l.+?gt;)', content) != None:
+        content = re.sub(r'(&l.+?gt;)', '', content, count=0)
+    if re.search(r'(&a.+?sp;)', content) != None:
+        content = re.sub(r'(&a.+?sp;)', '', content, count=0)
+    if re.search(r'(\n)', content) != None:
+        content = content.replace('\r', '')
+        content = content.replace('\n', '')
     tag = content_json['items']['keywords']
     href = 'https://news.cnyes.com' + article_id
     output = {'date': date, 'title': title, 'content': content, 'href': href, 'tag': tag, 'clicks': 'NA'}
