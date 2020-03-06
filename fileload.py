@@ -10,5 +10,5 @@ with open(r"filepath",'r',encoding= 'utf-8') as load_f:
 import pymongo
 import dns
 client = pymongo.MongoClient("mongodb+srv://db_106_user:stockdb106@cluster0-iocac.gcp.mongodb.net/test?retryWrites=true&w=majority")
-db = client.newsjson
-db.inventory.insert_one(load_dict)
+db = client.json
+db.news.insert_one(load_dict)
