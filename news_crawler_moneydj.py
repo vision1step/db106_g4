@@ -1,10 +1,11 @@
 from bs4 import BeautifulSoup as bs
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, date
 import time
 from random import randrange
 import pymongo
+import re
 
 
 # check directory existence and make one if not exist
@@ -32,8 +33,8 @@ def str_to_timestamp(t_str):
     return result
 
 
-def read_log():
-    with open(log_dir + log_file_name, 'r', encoding='utf-8') as log_file:
+def read_log(last_log):
+    with open(log_dir + last_log, 'r', encoding='utf-8') as log_file:
         s = log_file.read().split(";")
         if len(s) > 2:
             s = s[-2].lstrip("{").rstrip("}").split(',')
@@ -46,9 +47,9 @@ def read_log():
         else:
             return {}
 
-# connect to mongodb
-# mng = pymongo.MongoClient("mongodb://localhost:27017/")
-# mydb = mng["newsdb"]
+cli = pymongo.MongoClient("mongodb://hannibal:`1q@localhost:27017/news")
+db = cli['news']
+news_col = db['moneydj']
 
 
 # Initial setup for crawler and file directory
@@ -57,18 +58,21 @@ to_dir = './'+'moneydj'+'/'
 log_dir = to_dir+'log/'
 mkpath_check(to_dir)
 mkpath_check(log_dir)
-mkfile_check(to_dir+'News_Data.txt', 'data')
-log_file_name = 'Log.txt'
-mkfile_check(log_dir+'Log.txt', 'log')
+# mkfile_check(to_dir+'News_Data.txt', 'data')
+log_file_name = '{}-Log.txt'.format(str(date.today()))
+mkfile_check(log_dir+log_file_name, 'log')
 
-# Get start pages from log file
-log_dict = read_log()
-if not log_dict:
-    log_dict = {'article_time': int(datetime.timestamp(datetime.now()))}
-    page = 1
+# Get latest news from log file
+td = str(datetime.today().date()) # date of today
+if not td == os.listdir(log_dir)[-1].split("-Log.")[0]:
+    log_dict = read_log(os.listdir(log_dir)[-1])
 else:
-    page = int(log_dict['page'])
-print(log_dict)
+    if len(os.listdir(log_dir)) <= 1:
+        log_dict = read_log(os.listdir(log_dir)[-1])
+    else:
+        log_dict = read_log(os.listdir(log_dir)[-2])
+page = 1
+
 # Setting
 url = 'https://www.moneydj.com/KMDJ/News/NewsRealList.aspx?index1={}&a=MB010000'.format(page)
 host = 'https://www.moneydj.com'
@@ -80,15 +84,21 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 res = requests.get(url, headers=headers)
 soup = bs(res.text, 'html.parser')
 max_page = soup.select('table[class="paging3"] td')[-1].a['href'].split("=")[1].split("&")[0]
+finish_flag = 0
 # print('Total pages of news:' + str(max_page))
 print(page)
 
-for i in range(page,int(max_page)):
+l_time = news_col.find_one(sort=[("time", -1)])['time']
+latest_news = int(str(str_to_timestamp(l_time))[0:-2])
+print(latest_news)
+
+
+for i in range(page, int(max_page)+1):
     res = requests.get(url, headers=headers)
     soup = bs(res.text, 'html.parser')
     news_title = soup.select('table[class="forumgrid"] tr a')
     for each_title in news_title:
-        time.sleep(randrange(3, 7))
+        time.sleep(randrange(1, 3))
         a_url = host + each_title['href']
         a_title = each_title['title']
         a_res = requests.get(a_url, headers=headers)
@@ -115,14 +125,17 @@ for i in range(page,int(max_page)):
                'article_time': str_to_timestamp(a_time),
                'page': page,
                'article_title': a_title}
-        print(log)
-        if int(str(log['article_time'])[0:-2]) < int(log_dict['article_time'][0:-2]):
-            with open(to_dir+'News_Data.txt', 'a', encoding="utf-8") as file:
-                file.write(str(article)+';')
-                file.close()
-            with open(log_dir+log_file_name, 'a', encoding='utf-8') as log_file:
-                log_file.write(str(log)+';')
-                log_file.close()
 
+        if int(str(str_to_timestamp(a_time))[0:-2]) > latest_news:
+            # news_col.insert_one(article)
+            print(log)
+            # with open(log_dir+log_file_name, 'a', encoding='utf-8') as log_file:
+            #     log_file.write(str(log)+';')
+            #     log_file.close()
+        else:
+            finish_flag = 1
+
+    if finish_flag == 1:
+        break
     page += 1
     url = 'https://www.moneydj.com/KMDJ/News/NewsRealList.aspx?index1={}&a=MB010000'.format(page)
