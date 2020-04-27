@@ -127,11 +127,11 @@ for i in range(page, int(max_page)+1):
                'article_title': a_title}
 
         if int(str(str_to_timestamp(a_time))[0:-2]) > latest_news:
-            # news_col.insert_one(article)
+            news_col.insert_one(article)
             print(log)
-            # with open(log_dir+log_file_name, 'a', encoding='utf-8') as log_file:
-            #     log_file.write(str(log)+';')
-            #     log_file.close()
+            with open(log_dir+log_file_name, 'a', encoding='utf-8') as log_file:
+                log_file.write(str(log)+';')
+                log_file.close()
         else:
             finish_flag = 1
 
