@@ -47,7 +47,7 @@ def read_log(last_log):
         else:
             return {}
 
-cli = pymongo.MongoClient("mongodb://hannibal:`1q@localhost:27017/news")
+cli = pymongo.MongoClient("mongodb://hannibal:`1q@192.168.1.109:27017/news")
 db = cli['news']
 news_col = db['moneydj']
 
